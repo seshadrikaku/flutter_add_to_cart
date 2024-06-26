@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:eff_task/ui/screens/commo_widgets/common_button.dart';
+import 'package:eff_task/ui/components/toast_utils.dart';
 import 'package:eff_task/utils/generic_text.dart';
 import 'package:flutter/material.dart';
 import 'package:eff_task/services/storage.dart';
@@ -27,12 +29,12 @@ class _CartScreenState extends State<CartScreen> {
       allProductList = productList;
       quantityMap.clear();
       for (var product in allProductList) {
-        quantityMap[product['productId']] = 1;
+        quantityMap[product['productId']] = product['quantity'];
       }
     });
   }
 
-//Read product list details from sharedPref
+  // Read product list details from shared preferences
   Future<List<Map<String, dynamic>>> readProductList() async {
     final jsonString = await _pref.read(cartProductsText);
     if (jsonString != null && jsonString.isNotEmpty) {
@@ -58,23 +60,43 @@ class _CartScreenState extends State<CartScreen> {
     return [];
   }
 
-//Increase product quantity
+  // Save the updated product list to shared preferences
+  Future<void> _saveProductList() async {
+    await _pref.save(cartProductsText, allProductList);
+  }
+
+  // Increase product quantity
   void increaseQuantity(int productId) {
     setState(() {
       quantityMap[productId] = (quantityMap[productId] ?? 1) + 1;
+      _updateProductQuantity(productId, quantityMap[productId]!);
     });
   }
 
-//Decrease product quantity
+  // Decrease product quantity
   void decreaseQuantity(int productId) {
     setState(() {
       if (quantityMap[productId] != null && quantityMap[productId]! > 1) {
         quantityMap[productId] = quantityMap[productId]! - 1;
+        _updateProductQuantity(productId, quantityMap[productId]!);
+      } else {
+        removeProduct(productId);
       }
     });
   }
 
-//CalculateTotalPrice
+  // Update the quantity of the product in the product list
+  void _updateProductQuantity(int productId, int quantity) {
+    for (var product in allProductList) {
+      if (product['productId'] == productId) {
+        product['quantity'] = quantity;
+        break;
+      }
+    }
+    _saveProductList();
+  }
+
+  // Calculate total price
   double calculateTotalPrice() {
     double totalPrice = 0.0;
     for (var product in allProductList) {
@@ -84,7 +106,7 @@ class _CartScreenState extends State<CartScreen> {
     return totalPrice;
   }
 
-//Remove product from list
+  // Remove product from list
   Future<void> removeProduct(int productId) async {
     List<Map<String, dynamic>> updatedList = List.from(allProductList);
     updatedList.removeWhere((product) => product['productId'] == productId);
@@ -95,6 +117,7 @@ class _CartScreenState extends State<CartScreen> {
       allProductList = updatedList;
       quantityMap.remove(productId);
     });
+    ShowToastUtil.showToast(msg: removedToCartText);
   }
 
   @override
@@ -125,7 +148,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-//widget for Cart Section
+  // Widget for Cart Section
   Widget _buildCartSection() {
     return Column(
       children: List.generate(allProductList.length, (index) {
@@ -181,15 +204,28 @@ class _CartScreenState extends State<CartScreen> {
                     const SizedBox(height: 15),
                     Row(
                       children: [
-                        _buildQuantityButton(Icons.remove, Colors.grey, () {
-                          decreaseQuantity(productId);
-                        }),
+                        quantity == 1
+                            ? QuantityButton(
+                                icon: Icons.delete,
+                                iconColor: Colors.grey,
+                                onTap: () {
+                                  decreaseQuantity(productId);
+                                })
+                            : QuantityButton(
+                                icon: Icons.remove,
+                                iconColor: Colors.grey,
+                                onTap: () {
+                                  decreaseQuantity(productId);
+                                }),
                         const SizedBox(width: 10),
                         Text(quantity.toString()),
                         const SizedBox(width: 10),
-                        _buildQuantityButton(Icons.add, Colors.green, () {
-                          increaseQuantity(productId);
-                        }),
+                        QuantityButton(
+                            icon: Icons.add,
+                            iconColor: Colors.green,
+                            onTap: () {
+                              increaseQuantity(productId);
+                            }),
                         const Spacer(),
                         Text("Rs ${totalPrice.toString()}"),
                       ],
@@ -204,7 +240,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  //Widget for Image
+  // Widget for Image
   Widget _buildForImage(productImageUrl) {
     return Container(
       width: 90,
@@ -219,30 +255,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-//Widget for Qunatity button
-  Widget _buildQuantityButton(
-    IconData icon,
-    Color iconColor,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey, width: 1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: iconColor,
-          size: 22,
-        ),
-      ),
-    );
-  }
-
-//Widget for BuyButton
+  // Widget for BuyButton
   Widget _buildBuyButton() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20),

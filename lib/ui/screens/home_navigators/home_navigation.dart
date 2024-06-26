@@ -1,5 +1,4 @@
 import 'package:eff_task/ui/components/app_bars/common_app_bar.dart';
-import 'package:eff_task/ui/components/app_bars/explore_screen_app_bar.dart';
 import 'package:eff_task/ui/components/bottom_navigation.dart';
 import 'package:eff_task/ui/screens/cart/cart.dart';
 import 'package:eff_task/ui/screens/explore/explore.dart';
@@ -32,9 +31,7 @@ class _HomeNavigatorScreenState extends State<HomeNavigatorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: currentIndex == 0
-          ? const ExploreScreenAppBar()
-          : const AppBarScreen(),
+      appBar: currentIndex != 1 ? null : const AppBarScreen(),
       body: screens[currentIndex],
       bottomNavigationBar: CommonBottomNavigation(
         currentIndex: currentIndex,
